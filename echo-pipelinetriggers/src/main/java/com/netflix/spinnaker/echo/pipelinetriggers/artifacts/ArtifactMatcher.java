@@ -16,17 +16,35 @@
 
 package com.netflix.spinnaker.echo.pipelinetriggers.artifacts;
 
+import com.google.gson.Gson;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
 import com.netflix.spinnaker.echo.model.Trigger;
 import com.netflix.spinnaker.kork.artifacts.model.Artifact;
 import com.netflix.spinnaker.kork.artifacts.model.ExpectedArtifact;
-import java.util.*;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ArtifactMatcher {
+
+  private static final Gson gson = new Gson();
+
+  private static final Configuration configuration;
+
+  static {
+    configuration = Configuration.builder().options(Option.SUPPRESS_EXCEPTIONS).build();
+  }
+
   public static boolean anyArtifactsMatchExpected(
       List<Artifact> messageArtifacts,
       Trigger trigger,
@@ -65,6 +83,8 @@ public class ArtifactMatcher {
   /**
    * Check that there is a key in the payload for each constraint declared in a Trigger. Also check
    * that if there is a value for a given key, that the value matches the value in the payload.
+   * Constraint keys that begin with a '$.' are treated as JsonPath expressions which are used to
+   * extract the value from the payload to test against.
    *
    * @param constraints A map of constraints configured in the Trigger (eg, created in Deck). A
    *     constraint is a [key, java regex value] pair.
@@ -73,7 +93,18 @@ public class ArtifactMatcher {
    *     the payload.
    */
   public static boolean isConstraintInPayload(final Map constraints, final Map payload) {
+
+    DocumentContext document =
+        JsonPath.using(configuration).parse(gson.toJson(payload, LinkedHashMap.class));
+
     for (Object key : constraints.keySet()) {
+      if (key.toString().startsWith("$.")
+          && constraints.get(key) != null
+          && document.read(key.toString()) != null
+          && matches(constraints.get(key).toString(), document.read(key.toString()).toString())) {
+        return true;
+      }
+
       if (!payload.containsKey(key) || payload.get(key) == null) {
         return false;
       }

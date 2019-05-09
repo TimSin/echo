@@ -39,6 +39,9 @@ dependencies {
   implementation "com.netflix.spinnaker.kork:kork-web"
   implementation "com.netflix.spinnaker.kork:kork-expressions"
 
+  implementation project(':echo-core')
+  implementation "com.jayway.jsonpath:json-path"
+
   implementation "org.springframework.boot:spring-boot-starter-web"
   implementation "com.fasterxml.jackson.core:jackson-databind"
   implementation "io.reactivex:rxjava"

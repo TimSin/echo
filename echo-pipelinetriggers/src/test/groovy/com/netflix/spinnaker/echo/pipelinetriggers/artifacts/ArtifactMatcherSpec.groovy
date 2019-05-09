@@ -51,6 +51,34 @@ class ArtifactMatcherSpec extends Specification {
     "one": "['uno', 'one']"
   ]
 
+  def jsonPathPayload = [
+          "one": ["two": [["three": false],["three": true]]]
+  ]
+
+  def jsonConstraintsPathMatch = [
+          "\$.one.two[1].three": true
+  ]
+
+  def jsonConstraintsPathNoMatch = [
+          "\$.one.two[1].three": false
+  ]
+
+  def "matches when the constraint on the json path is true"() {
+    when:
+    boolean result = ArtifactMatcher.isConstraintInPayload(jsonConstraintsPathMatch, jsonPathPayload)
+
+    then:
+    result
+  }
+
+  def "no match when the constraint on the json path is false"() {
+    when:
+    boolean result = ArtifactMatcher.isConstraintInPayload(jsonConstraintsPathNoMatch, jsonPathPayload)
+
+    then:
+    !result
+  }
+
   def "matches when constraint is partial word"() {
     when:
     boolean result = ArtifactMatcher.isConstraintInPayload(shortConstraint, matchPayload)
